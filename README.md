@@ -166,11 +166,11 @@ W02: POST /auth/login (aarav wrong password) -> 401 {'detail': 'Wrong email or p
 W03: GET /auth/me (aarav) -> 200 {'id': 5, 'email': 'aarav@mail.test', 'full_name': 'Aarav Rao', 'role': 'passenger'}
 Tampered JWT: GET /auth/me (tampered signature) -> 401 {'detail': 'Invalid or expired token'}
 W04: GET /auth/me (no token) -> 401 {'detail': 'Not authenticated'}
-W05: POST /auth/register (new.user@mail.test) -> 201 {'token_type': 'bearer', 'has_token': True}
+W05: POST /auth/register (new.user@mail.test) -> 201 {'token_type': 'bearer', 'jwt_dots': 2} (3-part JWT)
 W06: POST /auth/register (duplicate) -> 400 {'detail': 'Email already registered'}
-W07: POST /auth/register (short password) -> 422 | >72B register -> 422
-W08: GET /trips -> 200 X-Process-Time=0.006605 total=40 page=1 limit=10 ids=[2, 3, 4, 5, 7, 8, 9, 10, 12, 13] first={'id': 2, 'origin': 'Bengaluru', 'destination': 'Chennai', 'operator': 'Highway Kings', 'departure_at': '2026-12-01 18:00:00', 'bus_type': 'AC Sleeper', 'fare_inr': 920, 'seats_left': 26}
-W09: GET /trips?origin=Pune&destination=Goa -> 200 total=4 ids=[42, 43, 44, 45]
+W07: POST /auth/register (short password) -> 422 | >72B register -> 422 | blank email/name -> 422
+W08: GET /trips -> 200 X-Process-Time=0.007167 total=40 page=1 limit=10 ids=[2, 3, 4, 5, 7, 8, 9, 10, 12, 13] first={'id': 2, 'origin': 'Bengaluru', 'destination': 'Chennai', 'operator': 'Highway Kings', 'departure_at': '2026-12-01 18:00:00', 'bus_type': 'AC Sleeper', 'fare_inr': 920, 'seats_left': 26}
+W09: GET /trips?origin=Pune&destination=Goa -> 200 total=4 ids=[42, 43, 44, 45] | blank ?origin= -> total=40
 W10: GET /trips?max_fare=600 -> 200 total=12 ids=[5, 8, 9, 10, 22, 23, 24, 25, 27, 28]
 W11: GET /trips?origin=pune&destination=goa&max_fare=800 -> 200 total=2 ids=[42, 43]
 W12: GET /trips?page=2&limit=15 -> 200 total=40 page=2 limit=15 ids=[20, 22, 23, 24, 25, 27, 28, 29, 30, 32, 33, 34, 35, 37, 38]
@@ -181,16 +181,16 @@ W16: GET /operator/summary (ops.manager) -> 200 {'revenue_inr': 182705, 'booking
 W17: POST /operator/release-stale-holds -> 200 {'released': 12, 'booking_ids': [8, 11, 14, 25, 28, 58, 63, 78, 104, 105, 106, 107]} | repeat -> 200 {'released': 0, 'booking_ids': []}
 W18: GET /operator/summary (ops.manager) -> 200 {'revenue_inr': 182705, 'bookings_by_status': {'cancelled': 30, 'completed': 16, 'confirmed': 62, 'held': 2}, 'busiest_route': 'Goa to Mumbai', 'busiest_route_seats': 34}
 W19: POST /bookings (trip 22, seats 3, aarav) -> 201 {'id': 111, 'trip_id': 22, 'passenger_id': 5, 'seats': 3, 'amount_inr': 840, 'status': 'held', 'created_at': '2026-12-01 09:00:00'}; notifications.log line: booking 111: trip=22 passenger=5 seats=3 amount_inr=840; GET /trips/22 seats_left=32
-W20: invalid bookings -> [422, 422, 404, 400, 403, 401]
+W20: invalid bookings -> seats=0: 422; seats=7: 422; trip_id=999: 404; trip_id=1 (departed): 400; ops.manager: 403; no token: 401
 W21: 4x POST /bookings (trip 15, seats 6) -> 201 ids 112..115 (8940 each); GET /trips/15 seats_left=0; 5th attempt -> 400 {'detail': 'Only 0 seats are left on this trip'}
 W22: POST /bookings/111/pay -> 403 (diya), 200 confirmed (aarav), 400 (aarav repeat)
 W23: GET /operator/summary (ops.manager) -> 200 {'revenue_inr': 183545, 'bookings_by_status': {'cancelled': 30, 'completed': 16, 'confirmed': 63, 'held': 6}, 'busiest_route': 'Bengaluru to Hyderabad', 'busiest_route_seats': 47}
-W24: PATCH /bookings/111/status + cancel -> [403, 400, 422, 200 (boarded), 400, 200 (completed), 400 (cancel)]
+W24: PATCH /bookings/111/status + cancel -> aarav boarded: 403; conductor completed: 400; conductor held: 422; conductor boarded: 200 (boarded); conductor boarded repeat: 400; conductor completed: 200 (completed); aarav cancel: 400
 W25: Cancellations -> #3 (dev): 200 {'id': 3, 'status': 'cancelled', 'refund_inr': 740}; #18 (ishaan): 200 {'id': 18, 'status': 'cancelled', 'refund_inr': 2034}; #1 (rohan): 200 {'id': 1, 'status': 'cancelled', 'refund_inr': 0}; #1 repeat: 400; #6 (kabir): 200 {'id': 6, 'status': 'cancelled', 'refund_inr': 0}; #2 (rohan): 403
 W26: GET /bookings?status=held (ops.manager) -> 200 total=5 ids=[38, 112, 113, 114, 115]
 W27: GET /bookings -> aarav: 200 total=15 ids=[22, 27, 28, 35, 41, 62, 72, 82, 91, 106]; conductor.one: 403; ops.manager: 200 total=115
 W28: GET /operator/summary (ops.manager) -> 200 {'revenue_inr': 180771, 'bookings_by_status': {'cancelled': 34, 'completed': 17, 'confirmed': 59, 'held': 5}, 'busiest_route': 'Bengaluru to Hyderabad', 'busiest_route_seats': 45}
-Post-W28 ledger check: total=105, refunds=14
+Post-W28 ledger check: total=105, refunds=14 | DB CHECK constraints verified
 ```
 
 CORS preflight evidence (`OPTIONS /bookings`):
@@ -244,7 +244,7 @@ C4 Advisories Search:
   "luggage kg allowance" -> [(2, 'Luggage allowance', 0.6236), (6, 'Rest stops', 0.2722), (3, 'Boarding time', 0.2265)]
   "pay seat hold within minutes" -> [(5, 'Seat hold timer', 0.6025), (7, 'Child fares', 0.2683), (3, 'Boarding time', 0.2631)]
   "child ticket" -> [(7, 'Child fares', 0.4243), (3, 'Boarding time', 0.2774), (8, 'Delayed departure', 0.1826)]
-  q="ab" -> 422
+  q="ab" -> 422 | q="   " -> 422
 ```
 
 ### Part D — Browser client verification (`F1`–`F10`)
@@ -258,6 +258,6 @@ Executed against a freshly seeded database on `http://localhost:5500` talking to
 - **F5**: Clear `destination` and `max-fare`, submit `origin=Delhi` -> `GET http://127.0.0.1:8000/trips?origin=Delhi` (`200`); `0` cards; `1` `.empty` element reading `No trips found`.
 - **F6**: Search `Pune` to `Goa` again (first card shows `41 seats left`), click `.book-btn` while signed out -> `#message` reads `Please log in first`; `0` `POST /bookings` requests sent.
 - **F7**: Sign in as `diya@mail.test` with `wrongpass` -> `POST http://127.0.0.1:8000/auth/login` (`401`); `#message` reads `Wrong email or password`; `seatdesk_token` stays unset.
-- **F8**: Sign in as `diya@mail.test` with `SeatDesk@2026` -> `POST http://127.0.0.1:8000/auth/login` (`200`); `#message` reads `Logged in as diya@mail.test`; JWT stored under `seatdesk_token`.
+- **F8**: Sign in as `diya@mail.test` with `SeatDesk@2026` -> `POST http://127.0.0.1:8000/auth/login` (`200`); `#message` reads `Logged in as diya@mail.test`; JWT stored under `seatdesk_token` (API response confirmed 3-part / 2-dot JWT format).
 - **F9**: Click `.book-btn` on trip 42 -> `POST http://127.0.0.1:8000/bookings` (`201`) followed by reload `GET http://127.0.0.1:8000/trips?origin=Pune&destination=Goa` (`200`); after reload settles, `#message` still reads `Seat held: booking #111, INR 620`.
 - **F10**: Inspect trip 42 card again -> seats left decremented from `41 seats left` to `40 seats left`; `#message` still reads `Seat held: booking #111, INR 620`.
