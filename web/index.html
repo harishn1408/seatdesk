@@ -6,44 +6,55 @@
   <title>SeatDesk — Intercity Corridor Desk</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
-<body class="page-home">
+<body>
   <header class="site-header">
     <nav class="navbar">
-      <div class="nav-left">
-        <a href="index.html" class="brand">
-          <span class="brand-name">SeatDesk</span>
-          <span class="brand-tag">Corridor Desk</span>
-        </a>
-        <div class="nav-links">
-          <a href="index.html" class="nav-link is-active">Home</a>
-          <a href="login.html" class="nav-link">Login Page</a>
-        </div>
+      <div class="brand">
+        <span class="brand-name">SeatDesk</span>
+        <span class="brand-tag">Corridor Operations Desk</span>
       </div>
-      <form id="login-form" class="login-form">
-        <input id="email" type="email" placeholder="Email" autocomplete="username" required>
-        <input id="password" type="password" placeholder="Password" autocomplete="current-password" required>
-        <button type="submit">Sign In</button>
-      </form>
+      <div class="nav-meta">
+        <span class="nav-pill">10 Active Corridors · 15 min Hold</span>
+      </div>
     </nav>
   </header>
 
   <main class="container">
-    <section class="hero-banner">
-      <div class="hero-copy">
-        <p class="hero-eyebrow">Intercity Operations Pilot</p>
-        <h1>Every corridor seat, held in real time.</h1>
-        <p class="hero-sub">Search active departures across Bengaluru, Chennai, Hyderabad, Pune, Mumbai, and Goa with instant seat-hold inventory.</p>
-      </div>
-      <div class="hero-meta">
-        <div class="hero-stat">
-          <span class="stat-label">Corridors</span>
-          <span class="stat-value">10 Routes</span>
+    <section class="desk-hero">
+      <div class="hero-banner">
+        <div class="showcase-glow"></div>
+        <div class="hero-copy">
+          <p class="hero-eyebrow">Intercity Operations Pilot</p>
+          <h1>Every corridor seat, held in real time.</h1>
+          <p class="hero-sub">Search active departures across Bengaluru, Chennai, Hyderabad, Pune, Mumbai, and Goa with instant 15-minute seat holds.</p>
         </div>
-        <div class="hero-stat">
-          <span class="stat-label">Hold Window</span>
-          <span class="stat-value">15 min</span>
+        <div class="hero-meta">
+          <div class="hero-stat">
+            <span class="stat-label">Corridors</span>
+            <span class="stat-value">10 Routes</span>
+          </div>
+          <div class="hero-stat">
+            <span class="stat-label">Hold Window</span>
+            <span class="stat-value">15 min</span>
+          </div>
         </div>
       </div>
+
+      <section class="login-card">
+        <h2>Sign in to SeatDesk</h2>
+        <p class="login-subtitle">Demo traveller: diya@mail.test · SeatDesk@2026</p>
+        <form id="login-form" class="login-page-form">
+          <label class="field">
+            <span>Email address</span>
+            <input id="email" type="email" placeholder="diya@mail.test" autocomplete="username" required>
+          </label>
+          <label class="field">
+            <span>Password</span>
+            <input id="password" type="password" placeholder="Enter password" autocomplete="current-password" required>
+          </label>
+          <button type="submit" class="login-submit-btn">Sign In</button>
+        </form>
+      </section>
     </section>
 
     <section class="search-panel">
