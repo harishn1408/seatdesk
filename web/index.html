@@ -3,15 +3,21 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SeatDesk — Corridor Booking Desk</title>
+  <title>SeatDesk — Intercity Corridor Desk</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
-<body>
+<body class="page-home">
   <header class="site-header">
     <nav class="navbar">
-      <div class="brand">
-        <span class="brand-name">SeatDesk</span>
-        <span class="brand-tag">Corridor Operations Desk</span>
+      <div class="nav-left">
+        <a href="index.html" class="brand">
+          <span class="brand-name">SeatDesk</span>
+          <span class="brand-tag">Corridor Desk</span>
+        </a>
+        <div class="nav-links">
+          <a href="index.html" class="nav-link is-active">Home</a>
+          <a href="login.html" class="nav-link">Login Page</a>
+        </div>
       </div>
       <form id="login-form" class="login-form">
         <input id="email" type="email" placeholder="Email" autocomplete="username" required>
@@ -22,8 +28,25 @@
   </header>
 
   <main class="container">
+    <section class="hero-banner">
+      <div class="hero-copy">
+        <p class="hero-eyebrow">Intercity Operations Pilot</p>
+        <h1>Every corridor seat, held in real time.</h1>
+        <p class="hero-sub">Search active departures across Bengaluru, Chennai, Hyderabad, Pune, Mumbai, and Goa with instant seat-hold inventory.</p>
+      </div>
+      <div class="hero-meta">
+        <div class="hero-stat">
+          <span class="stat-label">Corridors</span>
+          <span class="stat-value">10 Routes</span>
+        </div>
+        <div class="hero-stat">
+          <span class="stat-label">Hold Window</span>
+          <span class="stat-value">15 min</span>
+        </div>
+      </div>
+    </section>
+
     <section class="search-panel">
-      <h1>Intercity Trip Inventory</h1>
       <form id="search-form" class="search-form">
         <label class="field">
           <span>Origin</span>
@@ -37,9 +60,11 @@
           <span>Max Fare (INR)</span>
           <input id="max-fare" type="text" placeholder="e.g. 800">
         </label>
-        <button type="submit" class="search-btn">Search</button>
+        <button type="submit" class="search-btn">Search Trips</button>
       </form>
-      <p id="message" class="message" role="status"></p>
+      <div class="status-bar">
+        <p id="message" class="message" role="status"></p>
+      </div>
     </section>
 
     <section id="trip-list" class="trip-list" aria-live="polite"></section>

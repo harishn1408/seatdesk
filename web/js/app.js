@@ -13,6 +13,9 @@ const messageEl = document.getElementById("message");
 const tripListEl = document.getElementById("trip-list");
 
 function setMessage(text) {
+  if (!messageEl) {
+    return;
+  }
   messageEl.textContent = text;
   messageEl.classList.remove("is-updated");
   void messageEl.offsetWidth;
@@ -20,6 +23,9 @@ function setMessage(text) {
 }
 
 function renderTrips(items) {
+  if (!tripListEl) {
+    return;
+  }
   tripListEl.replaceChildren();
   if (!items || items.length === 0) {
     const emptyEl = document.createElement("p");
@@ -65,6 +71,9 @@ function renderTrips(items) {
 }
 
 function loadTrips(updateMessage) {
+  if (!searchForm || !tripListEl) {
+    return;
+  }
   const origin = originInput.value.trim();
   const destination = destinationInput.value.trim();
   const maxFare = maxFareInput.value.trim();
@@ -92,56 +101,65 @@ function loadTrips(updateMessage) {
     });
 }
 
-searchForm.addEventListener("submit", event => {
-  event.preventDefault();
-  loadTrips(true);
-});
+if (loginForm) {
+  loginForm.addEventListener("submit", event => {
+    event.preventDefault();
+    const email = emailInput.value.trim();
+    const password = passwordInput.value;
 
-loginForm.addEventListener("submit", event => {
-  event.preventDefault();
-  const email = emailInput.value.trim();
-  const password = passwordInput.value;
+    loginRequest(email, password)
+      .then(result => {
+        if (result.status === 200 && result.data.access_token) {
+          localStorage.setItem(TOKEN_KEY, result.data.access_token);
+          setMessage(`Logged in as ${email}`);
+          if (!tripListEl) {
+            setTimeout(() => {
+              window.location.href = "index.html";
+            }, 450);
+          }
+        } else if (typeof result.data.detail === "string") {
+          setMessage(result.data.detail);
+        }
+      })
+      .catch(() => {
+        setMessage("Could not reach SeatDesk");
+      });
+  });
+}
 
-  loginRequest(email, password)
-    .then(result => {
-      if (result.status === 200 && result.data.access_token) {
-        localStorage.setItem(TOKEN_KEY, result.data.access_token);
-        setMessage(`Logged in as ${email}`);
-      } else if (typeof result.data.detail === "string") {
-        setMessage(result.data.detail);
-      }
-    })
-    .catch(() => {
-      setMessage("Could not reach SeatDesk");
-    });
-});
+if (searchForm && tripListEl) {
+  searchForm.addEventListener("submit", event => {
+    event.preventDefault();
+    loadTrips(true);
+  });
 
-tripListEl.addEventListener("click", event => {
-  if (!(event.target instanceof Element) || !event.target.classList.contains("book-btn")) {
-    return;
-  }
+  tripListEl.addEventListener("click", event => {
+    if (!(event.target instanceof Element) || !event.target.classList.contains("book-btn")) {
+      return;
+    }
 
-  const token = localStorage.getItem(TOKEN_KEY);
-  if (!token) {
-    setMessage("Please log in first");
-    return;
-  }
+    const token = localStorage.getItem(TOKEN_KEY);
+    if (!token) {
+      setMessage("Please log in first");
+      return;
+    }
 
-  const tripId = Number(event.target.getAttribute("data-trip-id"));
-  createBookingRequest(tripId, token)
-    .then(result => {
-      if (result.status === 201) {
-        setMessage(`Seat held: booking #${result.data.id}, INR ${result.data.amount_inr}`);
-        loadTrips(false);
-      } else if (typeof result.data.detail === "string") {
-        setMessage(result.data.detail);
-      }
-    })
-    .catch(() => {
-      setMessage("Could not reach SeatDesk");
-    });
-});
+    const tripId = Number(event.target.getAttribute("data-trip-id"));
+    createBookingRequest(tripId, token)
+      .then(result => {
+        if (result.status === 201) {
+          setMessage(`Seat held: booking #${result.data.id}, INR ${result.data.amount_inr}`);
+          loadTrips(false);
+        } else if (typeof result.data.detail === "string") {
+          setMessage(result.data.detail);
+        }
+      })
+      .catch(() => {
+        setMessage("Could not reach SeatDesk");
+      });
+  });
 
-document.addEventListener("DOMContentLoaded", () => {
-  loadTrips(true);
-});
+  document.addEventListener("DOMContentLoaded", () => {
+    loadTrips(true);
+  });
+}

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign In — SeatDesk</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="page-login">
+  <header class="site-header">
+    <nav class="navbar">
+      <div class="nav-left">
+        <a href="index.html" class="brand">
+          <span class="brand-name">SeatDesk</span>
+          <span class="brand-tag">Corridor Desk</span>
+        </a>
+        <div class="nav-links">
+          <a href="index.html" class="nav-link">Home</a>
+          <a href="login.html" class="nav-link is-active">Login Page</a>
+        </div>
+      </div>
+      <a href="index.html" class="nav-cta">Browse Trips</a>
+    </nav>
+  </header>
+
+  <main class="login-shell">
+    <section class="login-showcase">
+      <div class="showcase-glow"></div>
+      <div class="showcase-inner">
+        <p class="hero-eyebrow">SeatDesk Access</p>
+        <h1>Move seamlessly across every corridor.</h1>
+        <p class="showcase-copy">Sign in with your SeatDesk passenger account to place 15-minute seat holds and inspect live route capacity.</p>
+        <ul class="showcase-points">
+          <li>Real-time seat availability synced with ledger charges</li>
+          <li>Instant booking hold confirmation with zero page reloads</li>
+          <li>JWT-secured role access across travellers and corridor staff</li>
+        </ul>
+      </div>
+      <div class="showcase-foot">
+        <span class="demo-chip">Demo traveller: diya@mail.test · SeatDesk@2026</span>
+      </div>
+    </section>
+
+    <section class="login-card-panel">
+      <div class="login-card">
+        <h2>Sign in to SeatDesk</h2>
+        <p class="login-subtitle">Enter your email and password to continue to the trip desk.</p>
+        <form id="login-form" class="login-page-form">
+          <label class="field">
+            <span>Email address</span>
+            <input id="email" type="email" placeholder="diya@mail.test" autocomplete="username" required>
+          </label>
+          <label class="field">
+            <span>Password</span>
+            <input id="password" type="password" placeholder="Enter password" autocomplete="current-password" required>
+          </label>
+          <button type="submit" class="login-submit-btn">Continue</button>
+        </form>
+        <p id="message" class="message" role="status"></p>
+        <a href="index.html" class="back-home-link">Continue browsing trips without signing in</a>
+      </div>
+    </section>
+  </main>
+
+  <script src="js/api.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
