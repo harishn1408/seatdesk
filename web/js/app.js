@@ -69,6 +69,12 @@ function loadTrips(updateMessage) {
 
   fetchTrips(origin, destination, maxFare)
     .then(data => {
+      if (!Array.isArray(data.items)) {
+        if (typeof data.detail === "string") {
+          messageEl.textContent = data.detail;
+        }
+        return;
+      }
       renderTrips(data.items);
       if (updateMessage) {
         messageEl.textContent = `${data.total} trips found`;
@@ -104,7 +110,7 @@ loginForm.addEventListener("submit", event => {
 });
 
 tripListEl.addEventListener("click", event => {
-  if (!event.target.classList.contains("book-btn")) {
+  if (!(event.target instanceof Element) || !event.target.classList.contains("book-btn")) {
     return;
   }
 
