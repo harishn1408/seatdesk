@@ -9,6 +9,22 @@ class RegisterRequest(BaseModel):
     password: str
     full_name: str = Field(min_length=1)
 
+    @field_validator("email")
+    @classmethod
+    def normalize_email(cls, value: str) -> str:
+        cleaned = value.strip().lower()
+        if not cleaned:
+            raise ValueError("Email must not be blank")
+        return cleaned
+
+    @field_validator("full_name")
+    @classmethod
+    def normalize_full_name(cls, value: str) -> str:
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("Full name must not be blank")
+        return cleaned
+
     @field_validator("password")
     @classmethod
     def validate_password(cls, value: str) -> str:
@@ -22,6 +38,11 @@ class RegisterRequest(BaseModel):
 class LoginRequest(BaseModel):
     email: str = Field(min_length=1)
     password: str
+
+    @field_validator("email")
+    @classmethod
+    def normalize_email(cls, value: str) -> str:
+        return value.strip().lower()
 
 
 class TokenResponse(BaseModel):

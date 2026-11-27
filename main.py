@@ -52,7 +52,7 @@ ALLOWED_STATUS_MOVES = {
     ("boarded", "completed"),
 }
 STALE_HOLD_CUTOFF = (datetime.strptime(DESK_NOW, FMT) - timedelta(minutes=15)).strftime(FMT)
-NOTIFICATION_LOG = Path("notifications.log")
+NOTIFICATION_LOG = Path(__file__).resolve().parent / "notifications.log"
 
 app = FastAPI(title="SeatDesk API", version="1.0.0")
 
@@ -137,12 +137,15 @@ def _search_future_trips(
         .options(joinedload(Trip.route))
         .where(Trip.departure_at >= DESK_NOW)
     )
-    if origin:
-        stmt = stmt.where(func.lower(Route.origin) == origin.strip().lower())
-    if destination:
-        stmt = stmt.where(func.lower(Route.destination) == destination.strip().lower())
-    if bus_type:
-        stmt = stmt.where(func.lower(Trip.bus_type) == bus_type.strip().lower())
+    origin_clean = origin.strip().lower() if origin else ""
+    destination_clean = destination.strip().lower() if destination else ""
+    bus_type_clean = bus_type.strip().lower() if bus_type else ""
+    if origin_clean:
+        stmt = stmt.where(func.lower(Route.origin) == origin_clean)
+    if destination_clean:
+        stmt = stmt.where(func.lower(Route.destination) == destination_clean)
+    if bus_type_clean:
+        stmt = stmt.where(func.lower(Trip.bus_type) == bus_type_clean)
     if max_fare is not None:
         stmt = stmt.where(Trip.fare_inr <= max_fare)
 
@@ -162,7 +165,7 @@ def health() -> dict[str, str]:
 
 @app.post("/auth/register", response_model=TokenResponse, status_code=http_status.HTTP_201_CREATED)
 def register(payload: RegisterRequest, db: Session = Depends(get_db)) -> TokenResponse:
-    existing = db.scalar(select(User).where(User.email == payload.email))
+    existing = db.scalar(select(User).where(func.lower(User.email) == payload.email))
     if existing is not None:
         raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail="Email already registered")
 
@@ -180,7 +183,7 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)) -> TokenRe
 
 @app.post("/auth/login", response_model=TokenResponse)
 def login(payload: LoginRequest, db: Session = Depends(get_db)) -> TokenResponse:
-    user = db.scalar(select(User).where(User.email == payload.email))
+    user = db.scalar(select(User).where(func.lower(User.email) == payload.email))
     if user is None or not verify_password(payload.password, user.password_hash):
         raise HTTPException(
             status_code=http_status.HTTP_401_UNAUTHORIZED,
@@ -272,8 +275,9 @@ def list_bookings(
     stmt = select(Booking)
     if current_user.role == "passenger":
         stmt = stmt.where(Booking.passenger_id == current_user.id)
-    if status:
-        stmt = stmt.where(Booking.status == status)
+    status_clean = status.strip() if status else ""
+    if status_clean:
+        stmt = stmt.where(Booking.status == status_clean)
 
     total = int(db.scalar(select(func.count()).select_from(stmt.subquery())) or 0)
     items = db.scalars(
@@ -481,6 +485,11 @@ def search_advisories(
     q: str = Query(..., min_length=3),
     top_k: int = Query(default=3, ge=1, le=8),
 ) -> list[AdvisorySearchHit]:
+    if len(q.strip()) < 3:
+        raise HTTPException(
+            status_code=422,
+            detail="Query must contain at least 3 non-whitespace characters",
+        )
     query_vec = mock_embed(q)
     scored = []
     for adv in ADVISORIES:

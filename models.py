@@ -1,5 +1,5 @@
 """SQLAlchemy 2.x ORM models for SeatDesk inventory, bookings, and ledger."""
-from sqlalchemy import ForeignKey, Integer, String
+from sqlalchemy import CheckConstraint, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from db import Base
@@ -7,6 +7,9 @@ from db import Base
 
 class User(Base):
     __tablename__ = "users"
+    __table_args__ = (
+        CheckConstraint("role IN ('passenger', 'operator', 'conductor')", name="ck_users_role"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
@@ -40,6 +43,13 @@ class Trip(Base):
 
 class Booking(Base):
     __tablename__ = "bookings"
+    __table_args__ = (
+        CheckConstraint("seats > 0", name="ck_bookings_seats_positive"),
+        CheckConstraint(
+            "status IN ('held', 'confirmed', 'boarded', 'completed', 'cancelled')",
+            name="ck_bookings_status",
+        ),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     trip_id: Mapped[int] = mapped_column(ForeignKey("trips.id"), nullable=False)
@@ -54,6 +64,9 @@ class Booking(Base):
 
 class LedgerEntry(Base):
     __tablename__ = "ledger"
+    __table_args__ = (
+        CheckConstraint("entry_type IN ('charge', 'refund')", name="ck_ledger_entry_type"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     booking_id: Mapped[int] = mapped_column(ForeignKey("bookings.id"), nullable=False)
