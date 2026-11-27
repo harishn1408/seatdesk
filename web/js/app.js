@@ -12,6 +12,13 @@ const maxFareInput = document.getElementById("max-fare");
 const messageEl = document.getElementById("message");
 const tripListEl = document.getElementById("trip-list");
 
+function setMessage(text) {
+  messageEl.textContent = text;
+  messageEl.classList.remove("is-updated");
+  void messageEl.offsetWidth;
+  messageEl.classList.add("is-updated");
+}
+
 function renderTrips(items) {
   tripListEl.replaceChildren();
   if (!items || items.length === 0) {
@@ -63,7 +70,7 @@ function loadTrips(updateMessage) {
   const maxFare = maxFareInput.value.trim();
 
   if (maxFare !== "" && !/^[1-9]\d*$/.test(maxFare)) {
-    messageEl.textContent = "Max fare must be a positive whole number";
+    setMessage("Max fare must be a positive whole number");
     return;
   }
 
@@ -71,17 +78,17 @@ function loadTrips(updateMessage) {
     .then(data => {
       if (!Array.isArray(data.items)) {
         if (typeof data.detail === "string") {
-          messageEl.textContent = data.detail;
+          setMessage(data.detail);
         }
         return;
       }
       renderTrips(data.items);
       if (updateMessage) {
-        messageEl.textContent = `${data.total} trips found`;
+        setMessage(`${data.total} trips found`);
       }
     })
     .catch(() => {
-      messageEl.textContent = "Could not reach SeatDesk";
+      setMessage("Could not reach SeatDesk");
     });
 }
 
@@ -99,13 +106,13 @@ loginForm.addEventListener("submit", event => {
     .then(result => {
       if (result.status === 200 && result.data.access_token) {
         localStorage.setItem(TOKEN_KEY, result.data.access_token);
-        messageEl.textContent = `Logged in as ${email}`;
+        setMessage(`Logged in as ${email}`);
       } else if (typeof result.data.detail === "string") {
-        messageEl.textContent = result.data.detail;
+        setMessage(result.data.detail);
       }
     })
     .catch(() => {
-      messageEl.textContent = "Could not reach SeatDesk";
+      setMessage("Could not reach SeatDesk");
     });
 });
 
@@ -116,7 +123,7 @@ tripListEl.addEventListener("click", event => {
 
   const token = localStorage.getItem(TOKEN_KEY);
   if (!token) {
-    messageEl.textContent = "Please log in first";
+    setMessage("Please log in first");
     return;
   }
 
@@ -124,14 +131,14 @@ tripListEl.addEventListener("click", event => {
   createBookingRequest(tripId, token)
     .then(result => {
       if (result.status === 201) {
-        messageEl.textContent = `Seat held: booking #${result.data.id}, INR ${result.data.amount_inr}`;
+        setMessage(`Seat held: booking #${result.data.id}, INR ${result.data.amount_inr}`);
         loadTrips(false);
       } else if (typeof result.data.detail === "string") {
-        messageEl.textContent = result.data.detail;
+        setMessage(result.data.detail);
       }
     })
     .catch(() => {
-      messageEl.textContent = "Could not reach SeatDesk";
+      setMessage("Could not reach SeatDesk");
     });
 });
 

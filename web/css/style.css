@@ -1,11 +1,12 @@
 :root {
-  --bg: #f5f6f8;
+  --bg: #f4f6fa;
   --surface: #ffffff;
   --ink: #1e2430;
   --muted: #5a6475;
   --border: #d8dee8;
   --accent: #c93b2b;
   --accent-hover: #a82e20;
+  --accent-soft: rgba(201, 59, 43, 0.14);
   --nav-bg: #18202c;
 }
 
@@ -16,15 +17,18 @@
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  background-color: var(--bg);
+  background: radial-gradient(circle at top right, #eef2fb 0%, var(--bg) 52%);
   color: var(--ink);
   line-height: 1.45;
+  min-height: 100vh;
 }
 
 .site-header {
-  background-color: var(--nav-bg);
+  background: linear-gradient(120deg, #151c27 0%, #1e293b 55%, #18202c 100%);
   color: #ffffff;
-  padding: 0.85rem 1.5rem;
+  padding: 0.9rem 1.5rem;
+  border-bottom: 2px solid rgba(201, 59, 43, 0.55);
+  box-shadow: 0 4px 18px rgba(20, 27, 40, 0.16);
 }
 
 .navbar {
@@ -43,9 +47,22 @@ body {
 }
 
 .brand-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
   font-size: 1.25rem;
   font-weight: 700;
   letter-spacing: 0.02em;
+}
+
+.brand-name::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #ef5343;
+  box-shadow: 0 0 0 0 rgba(239, 83, 67, 0.65);
+  animation: deskPulse 2.4s ease-out infinite;
 }
 
 .brand-tag {
@@ -63,10 +80,18 @@ body {
 .login-form input {
   padding: 0.45rem 0.65rem;
   border: 1px solid #3c485c;
-  border-radius: 4px;
+  border-radius: 5px;
   background-color: #232d3d;
   color: #ffffff;
   font-size: 0.9rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.login-form input:focus {
+  outline: none;
+  border-color: #ef5343;
+  background-color: #283446;
+  box-shadow: 0 0 0 3px rgba(239, 83, 67, 0.25);
 }
 
 .login-form input::placeholder {
@@ -76,20 +101,54 @@ body {
 .login-form button,
 .search-btn,
 .book-btn {
+  position: relative;
+  overflow: hidden;
   border: none;
-  border-radius: 4px;
+  border-radius: 5px;
   background-color: var(--accent);
   color: #ffffff;
   font-weight: 600;
   cursor: pointer;
   padding: 0.5rem 0.95rem;
   font-size: 0.9rem;
+  transition: transform 0.16s cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.login-form button::after,
+.search-btn::after,
+.book-btn::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -120%;
+  width: 70%;
+  height: 100%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.24), transparent);
+  transition: left 0.45s ease;
+  pointer-events: none;
 }
 
 .login-form button:hover,
 .search-btn:hover,
 .book-btn:hover {
   background-color: var(--accent-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(201, 59, 43, 0.28);
+}
+
+.login-form button:hover::after,
+.search-btn:hover::after,
+.book-btn:hover::after {
+  left: 130%;
+}
+
+.login-form button:active,
+.search-btn:active,
+.book-btn:active {
+  transform: translateY(1px) scale(0.98);
+  box-shadow: 0 2px 6px rgba(201, 59, 43, 0.2);
 }
 
 .container {
@@ -101,9 +160,11 @@ body {
 .search-panel {
   background-color: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 10px;
   padding: 1.25rem;
   margin-bottom: 1.25rem;
+  box-shadow: 0 4px 16px rgba(30, 36, 48, 0.05);
+  animation: panelFadeIn 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .search-panel h1 {
@@ -134,15 +195,29 @@ body {
 .field input {
   padding: 0.5rem 0.65rem;
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: 5px;
   font-size: 0.95rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.field input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
 .message {
   margin: 0.85rem 0 0;
   min-height: 1.35rem;
+  padding: 0.2rem 0.45rem;
+  border-radius: 5px;
   font-weight: 600;
   color: var(--ink);
+  display: inline-block;
+}
+
+.message.is-updated {
+  animation: messagePop 0.35s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .trip-list {
@@ -152,14 +227,55 @@ body {
 }
 
 .trip-card {
+  position: relative;
+  overflow: hidden;
   background-color: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 10px;
   padding: 1rem;
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
+  box-shadow: 0 2px 8px rgba(30, 36, 48, 0.04);
+  transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.22s ease,
+    border-color 0.22s ease;
+  animation: cardEnter 0.36s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
+
+.trip-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--accent), #e66b5c);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.trip-card:hover {
+  transform: translateY(-4px);
+  border-color: #c5cedd;
+  box-shadow: 0 12px 24px rgba(24, 32, 44, 0.1);
+}
+
+.trip-card:hover::before {
+  transform: scaleX(1);
+}
+
+.trip-card:nth-child(1) { animation-delay: 0ms; }
+.trip-card:nth-child(2) { animation-delay: 30ms; }
+.trip-card:nth-child(3) { animation-delay: 60ms; }
+.trip-card:nth-child(4) { animation-delay: 90ms; }
+.trip-card:nth-child(5) { animation-delay: 120ms; }
+.trip-card:nth-child(6) { animation-delay: 150ms; }
+.trip-card:nth-child(7) { animation-delay: 180ms; }
+.trip-card:nth-child(8) { animation-delay: 210ms; }
+.trip-card:nth-child(9) { animation-delay: 240ms; }
+.trip-card:nth-child(10) { animation-delay: 270ms; }
 
 .trip-card h3 {
   margin: 0 0 0.25rem;
@@ -181,8 +297,64 @@ body {
   grid-column: 1 / -1;
   background-color: var(--surface);
   border: 1px dashed var(--border);
-  border-radius: 8px;
+  border-radius: 10px;
   padding: 1.5rem;
   text-align: center;
   color: var(--muted);
+  animation: cardEnter 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes deskPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(239, 83, 67, 0.65);
+  }
+  70% {
+    box-shadow: 0 0 0 7px rgba(239, 83, 67, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(239, 83, 67, 0);
+  }
+}
+
+@keyframes panelFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes cardEnter {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes messagePop {
+  0% {
+    transform: translateY(3px);
+    background-color: rgba(201, 59, 43, 0.14);
+  }
+  100% {
+    transform: translateY(0);
+    background-color: transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
