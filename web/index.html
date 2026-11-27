@@ -15,6 +15,7 @@
       </div>
       <div class="nav-meta">
         <span class="nav-pill">10 Active Corridors · 15 min Hold</span>
+        <button id="logout-btn" type="button" class="nav-logout-btn">Sign Out</button>
       </div>
     </nav>
   </header>
@@ -42,7 +43,7 @@
 
       <section class="login-card">
         <h2>Sign in to SeatDesk</h2>
-        <p class="login-subtitle">Demo traveller: diya@mail.test · SeatDesk@2026</p>
+        <p class="login-subtitle">Demo: diya@mail.test · ops.manager@seatdesk.test · conductor.one@seatdesk.test (SeatDesk@2026)</p>
         <form id="login-form" class="login-page-form">
           <label class="field">
             <span>Email address</span>
@@ -79,6 +80,111 @@
     </section>
 
     <section id="trip-list" class="trip-list" aria-live="polite"></section>
+
+    <section class="desk-studio" aria-label="SeatDesk Studio">
+      <div class="studio-header">
+        <div>
+          <p class="studio-eyebrow">Full API Workspace</p>
+          <h2>AI Concierge, Timetable &amp; Role Desk</h2>
+        </div>
+        <div class="studio-tabs" role="tablist">
+          <button type="button" class="studio-tab is-active" data-tab="ai">AI &amp; Policy Copilot</button>
+          <button type="button" class="studio-tab" data-tab="timetable">Corridor Timetable</button>
+          <button type="button" class="studio-tab" data-tab="role">Role Desk</button>
+        </div>
+      </div>
+      <p id="studio-message" class="studio-message" role="status"></p>
+
+      <div id="pane-ai" class="studio-pane">
+        <div class="studio-split">
+          <article class="studio-card">
+            <h3>Free-Text Trip Search</h3>
+            <p class="studio-hint">Powered by offline query parsing (<code>POST /ai/search</code>).</p>
+            <form id="ai-form" class="inline-action-form">
+              <input id="ai-query" type="text" placeholder="e.g. Pune to Goa under 800" required>
+              <button type="submit" class="studio-btn">Ask AI</button>
+            </form>
+            <div id="ai-chips" class="chip-row">
+              <button type="button" class="prompt-chip" data-ai-prompt="Pune to Goa under 800">Pune to Goa under 800</button>
+              <button type="button" class="prompt-chip" data-ai-prompt="non ac bus Hyderabad to Pune">non ac bus Hyderabad to Pune</button>
+              <button type="button" class="prompt-chip" data-ai-prompt="cheap bus to Bengaluru within 600 rupees">cheap bus to Bengaluru within 600</button>
+            </div>
+            <div id="ai-parsed" class="parsed-pills"></div>
+            <div id="ai-results" class="mini-grid"></div>
+          </article>
+
+          <article class="studio-card">
+            <h3>Policy &amp; Refund Copilot</h3>
+            <p class="studio-hint">Cosine-similarity search across advisories (<code>GET /advisories/search</code>).</p>
+            <form id="advisory-form" class="inline-action-form">
+              <input id="advisory-query" type="text" placeholder="e.g. refund for cancelling a ticket" required>
+              <button type="submit" class="studio-btn">Search Policy</button>
+            </form>
+            <div id="advisory-chips" class="chip-row">
+              <button type="button" class="prompt-chip" data-adv-prompt="refund for cancelling a ticket">refund for cancelling</button>
+              <button type="button" class="prompt-chip" data-adv-prompt="luggage kg allowance">luggage kg allowance</button>
+              <button type="button" class="prompt-chip" data-adv-prompt="pay seat hold within minutes">seat hold timer</button>
+            </div>
+            <div id="advisory-results" class="advisory-list"></div>
+          </article>
+        </div>
+      </div>
+
+      <div id="pane-timetable" class="studio-pane is-hidden">
+        <article class="studio-card">
+          <h3>Merged Two-Operator Timetable</h3>
+          <p class="studio-hint">Interleaves departures in <code>O(n + m)</code> time using <code>algo.merge_sorted</code> (<code>GET /routes/{id}/timetable</code>).</p>
+          <form id="timetable-form" class="timetable-form">
+            <label class="field">
+              <span>Corridor Route</span>
+              <select id="route-select">
+                <option value="1">1 · Bengaluru to Chennai (346 km)</option>
+                <option value="2">2 · Chennai to Bengaluru (346 km)</option>
+                <option value="3">3 · Bengaluru to Hyderabad (570 km)</option>
+                <option value="4">4 · Hyderabad to Bengaluru (570 km)</option>
+                <option value="5">5 · Pune to Mumbai (150 km)</option>
+                <option value="6">6 · Mumbai to Pune (150 km)</option>
+                <option value="7">7 · Mumbai to Goa (590 km)</option>
+                <option value="8">8 · Goa to Mumbai (590 km)</option>
+                <option value="9">9 · Pune to Goa (450 km)</option>
+                <option value="10">10 · Hyderabad to Pune (560 km)</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Operator A</span>
+              <select id="op-a">
+                <option value="Coastline Express">Coastline Express</option>
+                <option value="Highway Kings">Highway Kings</option>
+                <option value="Nobody">Nobody</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Operator B</span>
+              <select id="op-b">
+                <option value="Highway Kings">Highway Kings</option>
+                <option value="Coastline Express">Coastline Express</option>
+                <option value="Nobody">Nobody</option>
+              </select>
+            </label>
+            <button type="submit" class="studio-btn">Merge Schedule</button>
+          </form>
+          <div id="timetable-results" class="timeline-list"></div>
+        </article>
+      </div>
+
+      <div id="pane-role" class="studio-pane is-hidden">
+        <article class="studio-card">
+          <div class="role-header">
+            <div>
+              <h3>Role-Aware Operations &amp; Booking Desk</h3>
+              <p class="studio-hint">Inspects your JWT role via <code>GET /auth/me</code> and unlocks Passenger, Conductor, or Operator workflows.</p>
+            </div>
+            <button id="load-desk-btn" type="button" class="studio-btn">Load My Desk</button>
+          </div>
+          <div id="desk-content" class="desk-content"></div>
+        </article>
+      </div>
+    </section>
   </main>
 
   <script src="js/api.js"></script>
