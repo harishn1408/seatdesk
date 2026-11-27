@@ -282,17 +282,30 @@ def list_bookings(
     return BookingPage(items=items, total=total, page=page, limit=limit)
 
 
+def _get_owned_booking(
+    db: Session,
+    booking_id: int,
+    passenger_id: int,
+    with_trip: bool = False,
+) -> Booking:
+    stmt = select(Booking).where(Booking.id == booking_id)
+    if with_trip:
+        stmt = stmt.options(joinedload(Booking.trip))
+    booking = db.scalar(stmt)
+    if booking is None:
+        raise HTTPException(status_code=http_status.HTTP_404_NOT_FOUND, detail="Booking not found")
+    if booking.passenger_id != passenger_id:
+        raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, detail="Not your booking")
+    return booking
+
+
 @app.post("/bookings/{booking_id}/pay", response_model=BookingOut)
 def pay_booking(
     booking_id: int,
     current_user: User = Depends(require_roles("passenger")),
     db: Session = Depends(get_db),
 ) -> Booking:
-    booking = db.get(Booking, booking_id)
-    if booking is None:
-        raise HTTPException(status_code=http_status.HTTP_404_NOT_FOUND, detail="Booking not found")
-    if booking.passenger_id != current_user.id:
-        raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, detail="Not your booking")
+    booking = _get_owned_booking(db, booking_id, current_user.id)
     if booking.status != "held":
         raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail="Only held bookings can be paid")
 
@@ -331,13 +344,7 @@ def cancel_booking(
     current_user: User = Depends(require_roles("passenger")),
     db: Session = Depends(get_db),
 ) -> CancelResponse:
-    booking = db.scalar(
-        select(Booking).options(joinedload(Booking.trip)).where(Booking.id == booking_id)
-    )
-    if booking is None:
-        raise HTTPException(status_code=http_status.HTTP_404_NOT_FOUND, detail="Booking not found")
-    if booking.passenger_id != current_user.id:
-        raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, detail="Not your booking")
+    booking = _get_owned_booking(db, booking_id, current_user.id, with_trip=True)
     if booking.status not in ("held", "confirmed"):
         raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail="Booking cannot be cancelled")
 

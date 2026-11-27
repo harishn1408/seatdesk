@@ -14,17 +14,20 @@ class LLMParseError(Exception):
     """Raised when the model returns an empty or schema-invalid response."""
 
 
+def _validate_trip_query_json(raw: str, source: str) -> TripQuery:
+    if not raw or not raw.strip():
+        raise LLMParseError("Could not understand trip search query")
+    try:
+        return TripQuery.model_validate_json(raw)
+    except ValidationError as exc:
+        raise LLMParseError(f"Invalid structured query from {source}") from exc
+
+
 def extract_trip_query(text: str) -> TripQuery:
     """Parse free-text trip search input into a validated TripQuery."""
     mode = (os.getenv("LLM_MODE") or "mock").strip().lower()
     if mode == "mock":
-        raw = mock_parse_trip_request(text)
-        if not raw or not raw.strip():
-            raise LLMParseError("Could not understand trip search query")
-        try:
-            return TripQuery.model_validate_json(raw)
-        except ValidationError as exc:
-            raise LLMParseError("Invalid structured query from model") from exc
+        return _validate_trip_query_json(mock_parse_trip_request(text), "mock")
 
     if mode == "gemini":
         api_key = os.getenv("GEMINI_API_KEY") or ""
@@ -49,12 +52,6 @@ def extract_trip_query(text: str) -> TripQuery:
                 ),
             ),
         )
-        raw = getattr(response, "text", None) or ""
-        if not raw.strip():
-            raise LLMParseError("Empty response from Gemini")
-        try:
-            return TripQuery.model_validate_json(raw)
-        except ValidationError as exc:
-            raise LLMParseError("Invalid structured query from Gemini") from exc
+        return _validate_trip_query_json(getattr(response, "text", None) or "", "Gemini")
 
     raise LLMParseError(f"Unsupported LLM_MODE: {mode}")
