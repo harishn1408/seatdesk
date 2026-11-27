@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SeatDesk — Corridor Booking Desk</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <nav class="navbar">
+      <div class="brand">
+        <span class="brand-name">SeatDesk</span>
+        <span class="brand-tag">Corridor Operations Desk</span>
+      </div>
+      <form id="login-form" class="login-form">
+        <input id="email" type="email" placeholder="Email" autocomplete="username" required>
+        <input id="password" type="password" placeholder="Password" autocomplete="current-password" required>
+        <button type="submit">Sign In</button>
+      </form>
+    </nav>
+  </header>
+
+  <main class="container">
+    <section class="search-panel">
+      <h1>Intercity Trip Inventory</h1>
+      <form id="search-form" class="search-form">
+        <label class="field">
+          <span>Origin</span>
+          <input id="origin" type="text" placeholder="e.g. Pune">
+        </label>
+        <label class="field">
+          <span>Destination</span>
+          <input id="destination" type="text" placeholder="e.g. Goa">
+        </label>
+        <label class="field">
+          <span>Max Fare (INR)</span>
+          <input id="max-fare" type="text" placeholder="e.g. 800">
+        </label>
+        <button type="submit" class="search-btn">Search</button>
+      </form>
+      <p id="message" class="message" role="status"></p>
+    </section>
+
+    <section id="trip-list" class="trip-list" aria-live="polite"></section>
+  </main>
+
+  <script src="js/api.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

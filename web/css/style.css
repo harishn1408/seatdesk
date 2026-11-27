@@ -1,0 +1,188 @@
+:root {
+  --bg: #f5f6f8;
+  --surface: #ffffff;
+  --ink: #1e2430;
+  --muted: #5a6475;
+  --border: #d8dee8;
+  --accent: #c93b2b;
+  --accent-hover: #a82e20;
+  --nav-bg: #18202c;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background-color: var(--bg);
+  color: var(--ink);
+  line-height: 1.45;
+}
+
+.site-header {
+  background-color: var(--nav-bg);
+  color: #ffffff;
+  padding: 0.85rem 1.5rem;
+}
+
+.navbar {
+  max-width: 1120px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.brand {
+  display: flex;
+  flex-direction: column;
+}
+
+.brand-name {
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.brand-tag {
+  font-size: 0.78rem;
+  color: #b7c2d4;
+}
+
+.login-form {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.login-form input {
+  padding: 0.45rem 0.65rem;
+  border: 1px solid #3c485c;
+  border-radius: 4px;
+  background-color: #232d3d;
+  color: #ffffff;
+  font-size: 0.9rem;
+}
+
+.login-form input::placeholder {
+  color: #9ba8bd;
+}
+
+.login-form button,
+.search-btn,
+.book-btn {
+  border: none;
+  border-radius: 4px;
+  background-color: var(--accent);
+  color: #ffffff;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.5rem 0.95rem;
+  font-size: 0.9rem;
+}
+
+.login-form button:hover,
+.search-btn:hover,
+.book-btn:hover {
+  background-color: var(--accent-hover);
+}
+
+.container {
+  max-width: 1120px;
+  margin: 1.5rem auto;
+  padding: 0 1.5rem 2rem;
+}
+
+.search-panel {
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.search-panel h1 {
+  margin: 0 0 0.85rem;
+  font-size: 1.25rem;
+}
+
+.search-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: flex-end;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1 1 180px;
+}
+
+.field span {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.field input {
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 0.95rem;
+}
+
+.message {
+  margin: 0.85rem 0 0;
+  min-height: 1.35rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.trip-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.trip-card {
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.trip-card h3 {
+  margin: 0 0 0.25rem;
+  font-size: 1.05rem;
+}
+
+.trip-card p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.trip-card .book-btn {
+  margin-top: 0.65rem;
+  align-self: flex-start;
+}
+
+.empty {
+  grid-column: 1 / -1;
+  background-color: var(--surface);
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  padding: 1.5rem;
+  text-align: center;
+  color: var(--muted);
+}
