@@ -1,0 +1,8 @@
+.env
+*.db
+notifications.log
+__pycache__/
+.venv/
+seed.json
+.pytest_cache/
+graphify-out/
