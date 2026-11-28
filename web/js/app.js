@@ -11,6 +11,7 @@ const destinationInput = document.getElementById("destination");
 const maxFareInput = document.getElementById("max-fare");
 
 const messageEl = document.getElementById("message");
+const reloadStatusEl = document.getElementById("reload-status");
 const tripListEl = document.getElementById("trip-list");
 
 const studioMessageEl = document.getElementById("studio-message");
@@ -111,15 +112,24 @@ function loadTrips(updateMessage) {
     origin = originInput.value.trim();
     destination = destinationInput.value.trim();
     maxFare = maxFareInput.value.trim();
-    if (maxFare !== "" && !/^[1-9]\d*$/.test(maxFare)) {
+    if (maxFare !== "") {
+    const fareNumber = Number(maxFare);
+    if (!Number.isInteger(fareNumber) || fareNumber <= 0) {
       setMessage("Max fare must be a positive whole number");
       return;
     }
+  }
     lastTripQuery = { origin: origin, destination: destination, maxFare: maxFare };
   }
 
-  fetchTrips(origin, destination, maxFare)
+  tripListEl.setAttribute("aria-busy", "true");
+  if (reloadStatusEl) {
+    reloadStatusEl.hidden = true;
+  }
+  fetch(buildTripsUrl(origin, destination, maxFare))
+    .then(res => res.json())
     .then(data => {
+      tripListEl.removeAttribute("aria-busy");
       if (!Array.isArray(data.items)) {
         if (updateMessage && typeof data.detail === "string") {
           setMessage(data.detail);
@@ -132,7 +142,13 @@ function loadTrips(updateMessage) {
       }
     })
     .catch(() => {
-      setMessage("Could not reach SeatDesk");
+      tripListEl.removeAttribute("aria-busy");
+      if (updateMessage) {
+        setMessage("Could not reach SeatDesk");
+      } else if (reloadStatusEl) {
+        reloadStatusEl.hidden = false;
+        reloadStatusEl.textContent = "Could not refresh trip list";
+      }
     });
 }
 
@@ -181,6 +197,14 @@ tripListEl.addEventListener("click", event => {
   createBookingRequest(tripId, token)
     .then(result => {
       if (result.status === 201) {
+        const maxFare = maxFareInput.value.trim();
+        if (maxFare === "" || Number.isInteger(Number(maxFare)) && Number(maxFare) > 0) {
+          lastTripQuery = {
+            origin: originInput.value.trim(),
+            destination: destinationInput.value.trim(),
+            maxFare: maxFare,
+          };
+        }
         setMessage(`Seat held: booking #${result.data.id}, INR ${result.data.amount_inr}`);
         loadTrips(false);
       } else if (typeof result.data.detail === "string") {

@@ -15,7 +15,9 @@ from models import User
 
 load_dotenv()
 
-JWT_SECRET = os.getenv("JWT_SECRET") or "seatdesk-dev-secret-key-at-least-32-chars"
+JWT_SECRET = os.getenv("JWT_SECRET")
+if not JWT_SECRET or len(JWT_SECRET) < 32:
+    raise RuntimeError("JWT_SECRET must be set to at least 32 characters")
 JWT_EXPIRE_MINUTES = int(os.getenv("JWT_EXPIRE_MINUTES") or "60")
 JWT_ALGORITHM = "HS256"
 
@@ -40,8 +42,9 @@ def verify_password(password: str, password_hash: str) -> bool:
 
 def create_access_token(user_id: int, role: str) -> str:
     """Sign an HS256 JWT with string sub, role, and wall-clock UTC expiry."""
-    exp = datetime.now(timezone.utc) + timedelta(minutes=JWT_EXPIRE_MINUTES)
-    payload = {"sub": str(user_id), "role": role, "exp": exp}
+    now = datetime.now(timezone.utc)
+    exp = now + timedelta(minutes=JWT_EXPIRE_MINUTES)
+    payload = {"sub": str(user_id), "role": role, "iat": now, "nbf": now, "exp": exp}
     return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
 
 

@@ -839,3 +839,113 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Mobile optimizations (narrow screens) */
+html,
+body {
+  overflow-x: hidden;
+}
+
+button,
+.book-btn,
+.studio-btn,
+.search-btn,
+.login-submit-btn,
+.secondary-btn,
+.prompt-chip,
+.studio-tab {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  min-height: 44px;
+}
+
+.field input,
+.field select,
+.inline-action-form input {
+  font-size: 16px;
+}
+
+@media (max-width: 640px) {
+  .container {
+    padding: 0 0.9rem;
+  }
+
+  .search-form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .search-btn,
+  .login-submit-btn {
+    width: 100%;
+  }
+
+  .studio-tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .studio-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .desk-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-banner {
+    padding: 1.5rem 1.25rem;
+  }
+
+  .hero-meta {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .hero-stat {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .trip-list {
+    grid-template-columns: 1fr;
+  }
+
+  .trip-card {
+    padding: 1rem;
+  }
+
+  .booking-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .booking-actions {
+    width: 100%;
+  }
+
+  .booking-actions button {
+    flex: 1 1 0;
+  }
+
+  .kpi-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .navbar {
+    padding: 0.6rem 0.9rem;
+  }
+
+  .nav-meta {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+@supports (padding: max(0px)) {
+  .container {
+    padding-left: max(0.9rem, env(safe-area-inset-left));
+    padding-right: max(0.9rem, env(safe-area-inset-right));
+  }
+}

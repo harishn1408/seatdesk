@@ -12,10 +12,12 @@ class User(Base):
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     full_name: Mapped[str] = mapped_column(String(100), nullable=False)
-    role: Mapped[str] = mapped_column(String(20), nullable=False, default="passenger")
+    role: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="passenger", server_default="passenger", index=True
+    )
 
 
 class Route(Base):
@@ -31,9 +33,9 @@ class Trip(Base):
     __tablename__ = "trips"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    route_id: Mapped[int] = mapped_column(ForeignKey("routes.id"), nullable=False)
+    route_id: Mapped[int] = mapped_column(ForeignKey("routes.id"), nullable=False, index=True)
     operator: Mapped[str] = mapped_column(String(50), nullable=False)
-    departure_at: Mapped[str] = mapped_column(String(19), nullable=False)
+    departure_at: Mapped[str] = mapped_column(String(19), nullable=False, index=True)
     bus_type: Mapped[str] = mapped_column(String(20), nullable=False)
     fare_inr: Mapped[int] = mapped_column(Integer, nullable=False)
     total_seats: Mapped[int] = mapped_column(Integer, nullable=False)
@@ -52,12 +54,12 @@ class Booking(Base):
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    trip_id: Mapped[int] = mapped_column(ForeignKey("trips.id"), nullable=False)
-    passenger_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    trip_id: Mapped[int] = mapped_column(ForeignKey("trips.id"), nullable=False, index=True)
+    passenger_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
     seats: Mapped[int] = mapped_column(Integer, nullable=False)
     amount_inr: Mapped[int] = mapped_column(Integer, nullable=False)
-    status: Mapped[str] = mapped_column(String(20), nullable=False, default="held")
-    created_at: Mapped[str] = mapped_column(String(19), nullable=False)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="held", index=True)
+    created_at: Mapped[str] = mapped_column(String(19), nullable=False, index=True)
 
     trip: Mapped["Trip"] = relationship("Trip")
 
@@ -69,6 +71,6 @@ class LedgerEntry(Base):
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    booking_id: Mapped[int] = mapped_column(ForeignKey("bookings.id"), nullable=False)
-    entry_type: Mapped[str] = mapped_column(String(10), nullable=False)
+    booking_id: Mapped[int] = mapped_column(ForeignKey("bookings.id"), nullable=False, index=True)
+    entry_type: Mapped[str] = mapped_column(String(10), nullable=False, index=True)
     amount_inr: Mapped[int] = mapped_column(Integer, nullable=False)

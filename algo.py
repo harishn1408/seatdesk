@@ -77,6 +77,8 @@ def pairs_for_budget_hashed(fares, budget):
 
 def cosine_similarity(a, b):
     """Return hand-written cosine similarity between vectors `a` and `b`."""
+    if len(a) != len(b):
+        raise ValueError("Vectors must have the same length")
     dot = sum(x * y for x, y in zip(a, b))
     mag_a = math.sqrt(sum(x * x for x in a))
     mag_b = math.sqrt(sum(y * y for y in b))

@@ -1,4 +1,4 @@
-const API_BASE = "http://127.0.0.1:8000";
+const API_BASE = window.API_BASE || "http://127.0.0.1:8000";
 
 function buildTripsUrl(origin, destination, maxFare) {
   const params = [];
@@ -13,10 +13,6 @@ function buildTripsUrl(origin, destination, maxFare) {
   }
   const query = params.join("&");
   return query ? `${API_BASE}/trips?${query}` : `${API_BASE}/trips`;
-}
-
-function fetchTrips(origin, destination, maxFare) {
-  return fetch(buildTripsUrl(origin, destination, maxFare)).then(res => res.json());
 }
 
 function parseResponsePayload(rawText) {

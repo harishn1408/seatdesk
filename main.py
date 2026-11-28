@@ -1,12 +1,16 @@
 """SeatDesk FastAPI application covering Part B booking API and Part C search/timetable."""
 import logging
+import os
+import threading
 import time
+import uuid
 from datetime import datetime, timedelta
 from pathlib import Path
 
 from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Query, Request, status as http_status
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import func, select
+from fastapi.middleware.gzip import GZipMiddleware
+from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session, joinedload
 
 from advisories import ADVISORIES
@@ -47,6 +51,9 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
 logger = logging.getLogger("seatdesk")
 
 ACTIVE_SEAT_STATUSES = ("held", "confirmed", "boarded", "completed")
+BOOKING_STATUSES = {"held", "confirmed", "boarded", "completed", "cancelled"}
+# shortcut: process-local lock only, upgrade to a DB row lock for multi-worker deployments
+_BOOKING_LOCK = threading.Lock()
 ALLOWED_STATUS_MOVES = {
     ("confirmed", "boarded"),
     ("boarded", "completed"),
@@ -54,22 +61,43 @@ ALLOWED_STATUS_MOVES = {
 STALE_HOLD_CUTOFF = (datetime.strptime(DESK_NOW, FMT) - timedelta(minutes=15)).strftime(FMT)
 NOTIFICATION_LOG = Path(__file__).resolve().parent / "notifications.log"
 
+# Precompute advisory embeddings once instead of rebuilding them on every search.
+_ADVISORY_VECTORS = [
+    (adv, mock_embed(f"{adv['title']} {adv['text']}")) for adv in ADVISORIES
+]
+
 app = FastAPI(title="SeatDesk API", version="1.0.0")
+
+app.add_middleware(GZipMiddleware, minimum_size=500)
 
 
 @app.middleware("http")
 async def process_time_middleware(request: Request, call_next):
+    request_id = str(uuid.uuid4())
+    request.state.request_id = request_id
     start = time.perf_counter()
     response = await call_next(request)
     elapsed = time.perf_counter() - start
     response.headers["X-Process-Time"] = f"{elapsed:.6f}"
-    logger.info("%s %s -> %s (%.6fs)", request.method, request.url.path, response.status_code, elapsed)
+    response.headers["X-Request-ID"] = request_id
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    logger.info(
+        "request_id=%s %s %s -> %s (%.6fs)",
+        request_id,
+        request.method,
+        request.url.path,
+        response.status_code,
+        elapsed,
+    )
     return response
 
 
+CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:5500").split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5500"],
+    allow_origins=[origin.strip() for origin in CORS_ORIGINS if origin.strip()],
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -163,6 +191,12 @@ def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
+@app.get("/health/db")
+def health_db(db: Session = Depends(get_db)) -> dict[str, str]:
+    db.execute(text("SELECT 1"))
+    return {"status": "ok", "database": "ok"}
+
+
 @app.post("/auth/register", response_model=TokenResponse, status_code=http_status.HTTP_201_CREATED)
 def register(payload: RegisterRequest, db: Session = Depends(get_db)) -> TokenResponse:
     existing = db.scalar(select(User).where(func.lower(User.email) == payload.email))
@@ -227,41 +261,45 @@ def create_booking(
     current_user: User = Depends(require_roles("passenger")),
     db: Session = Depends(get_db),
 ) -> Booking:
-    trip = db.get(Trip, payload.trip_id)
-    if trip is None:
-        raise HTTPException(status_code=http_status.HTTP_404_NOT_FOUND, detail="Trip not found")
-    if trip.departure_at < DESK_NOW:
-        raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail="Trip has already departed")
+    _BOOKING_LOCK.acquire()
+    try:
+        trip = db.get(Trip, payload.trip_id)
+        if trip is None:
+            raise HTTPException(status_code=http_status.HTTP_404_NOT_FOUND, detail="Trip not found")
+        if trip.departure_at < DESK_NOW:
+            raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail="Trip has already departed")
 
-    booked = _booked_seats_by_trip(db, [trip.id]).get(trip.id, 0)
-    seats_left = trip.total_seats - booked
-    if payload.seats > seats_left:
-        raise HTTPException(
-            status_code=http_status.HTTP_400_BAD_REQUEST,
-            detail=f"Only {seats_left} seats are left on this trip",
+        booked = _booked_seats_by_trip(db, [trip.id]).get(trip.id, 0)
+        seats_left = trip.total_seats - booked
+        if payload.seats > seats_left:
+            raise HTTPException(
+                status_code=http_status.HTTP_400_BAD_REQUEST,
+                detail=f"Only {seats_left} seats are left on this trip",
+            )
+
+        booking = Booking(
+            trip_id=trip.id,
+            passenger_id=current_user.id,
+            seats=payload.seats,
+            amount_inr=payload.seats * trip.fare_inr,
+            status="held",
+            created_at=DESK_NOW,
         )
+        db.add(booking)
+        db.commit()
+        db.refresh(booking)
 
-    booking = Booking(
-        trip_id=trip.id,
-        passenger_id=current_user.id,
-        seats=payload.seats,
-        amount_inr=payload.seats * trip.fare_inr,
-        status="held",
-        created_at=DESK_NOW,
-    )
-    db.add(booking)
-    db.commit()
-    db.refresh(booking)
-
-    background_tasks.add_task(
-        append_booking_notification,
-        booking.id,
-        booking.trip_id,
-        booking.passenger_id,
-        booking.seats,
-        booking.amount_inr,
-    )
-    return booking
+        background_tasks.add_task(
+            append_booking_notification,
+            booking.id,
+            booking.trip_id,
+            booking.passenger_id,
+            booking.seats,
+            booking.amount_inr,
+        )
+        return booking
+    finally:
+        _BOOKING_LOCK.release()
 
 
 @app.get("/bookings", response_model=BookingPage)
@@ -277,6 +315,8 @@ def list_bookings(
         stmt = stmt.where(Booking.passenger_id == current_user.id)
     status_clean = status.strip() if status else ""
     if status_clean:
+        if status_clean not in BOOKING_STATUSES:
+            raise HTTPException(status_code=http_status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid booking status")
         stmt = stmt.where(Booking.status == status_clean)
 
     total = int(db.scalar(select(func.count()).select_from(stmt.subquery())) or 0)
@@ -399,7 +439,7 @@ def operator_summary(
     ).first()
 
     if busiest is None:
-        busiest_route = ""
+        busiest_route = "No active route"
         busiest_route_seats = 0
     else:
         busiest_route = f"{busiest.origin} to {busiest.destination}"
@@ -492,8 +532,7 @@ def search_advisories(
         )
     query_vec = mock_embed(q)
     scored = []
-    for adv in ADVISORIES:
-        doc_vec = mock_embed(f"{adv['title']} {adv['text']}")
+    for adv, doc_vec in _ADVISORY_VECTORS:
         score = round(cosine_similarity(query_vec, doc_vec), 4)
         scored.append({"id": adv["id"], "title": adv["title"], "score": score})
 
