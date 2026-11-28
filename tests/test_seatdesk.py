@@ -1,19 +1,32 @@
-"""Standard-library tests for SeatDesk API checkpoints."""
+"""Standard-library tests for SeatDesk API checkpoints using an isolated temp DB."""
 import os
 import sys
+import tempfile
 import unittest
+from pathlib import Path
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+ROOT_DIR = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT_DIR))
+
+_TMP_DIR = tempfile.TemporaryDirectory()
+os.environ["DATABASE_URL"] = f"sqlite:///{Path(_TMP_DIR.name) / 'test_seatdesk.db'}"
+os.environ.setdefault("JWT_SECRET", "seatdesk-dev-secret-key-at-least-32-chars")
 
 from fastapi.testclient import TestClient
 
+from algo import cosine_similarity
+import db as db_module
 from load_seed import load
 import main
 
-from algo import cosine_similarity
-
+main.NOTIFICATION_LOG = Path(_TMP_DIR.name) / "notifications.log"
 load()
 client = TestClient(main.app)
+
+
+def tearDownModule():
+    db_module.engine.dispose()
+    _TMP_DIR.cleanup()
 
 
 class TestSeatDesk(unittest.TestCase):
@@ -30,10 +43,9 @@ class TestSeatDesk(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"status": "ok"})
 
-    def test_health_db(self):
+    def test_removed_extra_health_route(self):
         response = client.get("/health/db")
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json(), {"status": "ok", "database": "ok"})
+        self.assertEqual(response.status_code, 404)
 
     def test_trips_total(self):
         response = client.get("/trips")
@@ -70,6 +82,26 @@ class TestSeatDesk(unittest.TestCase):
         self.assertEqual(response.json()["total"], 4)
         self.assertEqual([x["id"] for x in response.json()["items"]], [42, 43, 44, 45])
 
+    def test_bookings_unknown_status_returns_empty(self):
+        response = client.get("/bookings?status=unknown", headers={"Authorization": "Bearer " + self._token})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["total"], 0)
+        self.assertEqual(response.json()["items"], [])
+
+    def test_cors_strict_origin(self):
+        ok = client.options(
+            "/bookings",
+            headers={"Origin": "http://localhost:5500", "Access-Control-Request-Method": "POST"},
+        )
+        bad = client.options(
+            "/bookings",
+            headers={"Origin": "http://evil.test", "Access-Control-Request-Method": "POST"},
+        )
+        self.assertEqual(ok.status_code, 200)
+        self.assertEqual(ok.headers.get("access-control-allow-origin"), "http://localhost:5500")
+        self.assertEqual(bad.status_code, 400)
+        self.assertIsNone(bad.headers.get("access-control-allow-origin"))
+
     def test_timetable(self):
         response = client.get("/routes/1/timetable?operator_a=Coastline%20Express&operator_b=Highway%20Kings")
         self.assertEqual(response.status_code, 200)
@@ -82,17 +114,13 @@ class TestSeatDesk(unittest.TestCase):
         self.assertEqual([x["id"] for x in response.json()["trips"]], [42, 43])
 
     def test_booking_lifecycle(self):
-        # create
         response = client.post("/bookings", json={"trip_id": 22, "seats": 1}, headers={"Authorization": "Bearer " + self._token})
         self.assertEqual(response.status_code, 201)
         booking_id = response.json()["id"]
-        # pay
         response = client.post(f"/bookings/{booking_id}/pay", headers={"Authorization": "Bearer " + self._token})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["status"], "confirmed")
-        # status move
-        conductor_token = self._conductor_token
-        response = client.patch(f"/bookings/{booking_id}/status", json={"status": "boarded"}, headers={"Authorization": "Bearer " + conductor_token})
+        response = client.patch(f"/bookings/{booking_id}/status", json={"status": "boarded"}, headers={"Authorization": "Bearer " + self._conductor_token})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["status"], "boarded")
 

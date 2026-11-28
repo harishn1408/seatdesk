@@ -1,6 +1,5 @@
 """SeatDesk FastAPI application covering Part B booking API and Part C search/timetable."""
 import logging
-import os
 import threading
 import time
 import uuid
@@ -10,7 +9,7 @@ from pathlib import Path
 from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Query, Request, status as http_status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
-from sqlalchemy import func, select, text
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session, joinedload
 
 from advisories import ADVISORIES
@@ -51,7 +50,6 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
 logger = logging.getLogger("seatdesk")
 
 ACTIVE_SEAT_STATUSES = ("held", "confirmed", "boarded", "completed")
-BOOKING_STATUSES = {"held", "confirmed", "boarded", "completed", "cancelled"}
 # shortcut: process-local lock only, upgrade to a DB row lock for multi-worker deployments
 _BOOKING_LOCK = threading.Lock()
 ALLOWED_STATUS_MOVES = {
@@ -94,10 +92,10 @@ async def process_time_middleware(request: Request, call_next):
     return response
 
 
-CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:5500").split(",")
+CORS_ORIGINS = ["http://localhost:5500"]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[origin.strip() for origin in CORS_ORIGINS if origin.strip()],
+    allow_origins=CORS_ORIGINS,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -189,12 +187,6 @@ def _search_future_trips(
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
-
-
-@app.get("/health/db")
-def health_db(db: Session = Depends(get_db)) -> dict[str, str]:
-    db.execute(text("SELECT 1"))
-    return {"status": "ok", "database": "ok"}
 
 
 @app.post("/auth/register", response_model=TokenResponse, status_code=http_status.HTTP_201_CREATED)
@@ -315,8 +307,6 @@ def list_bookings(
         stmt = stmt.where(Booking.passenger_id == current_user.id)
     status_clean = status.strip() if status else ""
     if status_clean:
-        if status_clean not in BOOKING_STATUSES:
-            raise HTTPException(status_code=http_status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid booking status")
         stmt = stmt.where(Booking.status == status_clean)
 
     total = int(db.scalar(select(func.count()).select_from(stmt.subquery())) or 0)
@@ -439,7 +429,7 @@ def operator_summary(
     ).first()
 
     if busiest is None:
-        busiest_route = "No active route"
+        busiest_route = ""
         busiest_route_seats = 0
     else:
         busiest_route = f"{busiest.origin} to {busiest.destination}"
