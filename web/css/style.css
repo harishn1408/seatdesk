@@ -908,10 +908,6 @@ button,
     width: 100%;
   }
 
-  .trip-list {
-    grid-template-columns: 1fr;
-  }
-
   .trip-card {
     padding: 1rem;
   }

@@ -112,13 +112,10 @@ function loadTrips(updateMessage) {
     origin = originInput.value.trim();
     destination = destinationInput.value.trim();
     maxFare = maxFareInput.value.trim();
-    if (maxFare !== "") {
-    const fareNumber = Number(maxFare);
-    if (!Number.isInteger(fareNumber) || fareNumber <= 0) {
+    if (maxFare !== "" && !/^[1-9]\d*$/.test(maxFare)) {
       setMessage("Max fare must be a positive whole number");
       return;
     }
-  }
     lastTripQuery = { origin: origin, destination: destination, maxFare: maxFare };
   }
 
@@ -197,14 +194,6 @@ tripListEl.addEventListener("click", event => {
   createBookingRequest(tripId, token)
     .then(result => {
       if (result.status === 201) {
-        const maxFare = maxFareInput.value.trim();
-        if (maxFare === "" || Number.isInteger(Number(maxFare)) && Number(maxFare) > 0) {
-          lastTripQuery = {
-            origin: originInput.value.trim(),
-            destination: destinationInput.value.trim(),
-            maxFare: maxFare,
-          };
-        }
         setMessage(`Seat held: booking #${result.data.id}, INR ${result.data.amount_inr}`);
         loadTrips(false);
       } else if (typeof result.data.detail === "string") {
