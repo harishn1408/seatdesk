@@ -19,6 +19,18 @@ function fetchTrips(origin, destination, maxFare) {
   return fetch(buildTripsUrl(origin, destination, maxFare)).then(res => res.json());
 }
 
+function parseResponsePayload(rawText) {
+  const trimmed = rawText ? rawText.trim() : "";
+  if (!trimmed) {
+    return {};
+  }
+  try {
+    return JSON.parse(trimmed);
+  } catch {
+    return { detail: trimmed.slice(0, 200) };
+  }
+}
+
 function requestJsonWithStatus(path, method, body, token) {
   const headers = {};
   if (body !== null && body !== undefined) {
@@ -32,7 +44,7 @@ function requestJsonWithStatus(path, method, body, token) {
     options.body = JSON.stringify(body);
   }
   return fetch(`${API_BASE}${path}`, options).then(res =>
-    res.json().then(data => ({ status: res.status, data: data }))
+    res.text().then(raw => ({ status: res.status, data: parseResponsePayload(raw) }))
   );
 }
 

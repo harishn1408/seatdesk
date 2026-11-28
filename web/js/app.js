@@ -35,6 +35,9 @@ const timetableResultsEl = document.getElementById("timetable-results");
 const loadDeskBtn = document.getElementById("load-desk-btn");
 const deskContentEl = document.getElementById("desk-content");
 
+let lastTripQuery = { origin: "", destination: "", maxFare: "" };
+let lastAiQuery = "";
+
 function setMessage(text) {
   messageEl.textContent = text;
   messageEl.classList.remove("is-updated");
@@ -44,6 +47,14 @@ function setMessage(text) {
 
 function setStudioMessage(text) {
   studioMessageEl.textContent = text;
+}
+
+function showStudioDetail(data, fallback) {
+  setStudioMessage(data && typeof data.detail === "string" ? data.detail : fallback);
+}
+
+function reportStudioOffline() {
+  setStudioMessage("Could not reach SeatDesk");
 }
 
 function renderTrips(items) {
@@ -92,19 +103,25 @@ function renderTrips(items) {
 }
 
 function loadTrips(updateMessage) {
-  const origin = originInput.value.trim();
-  const destination = destinationInput.value.trim();
-  const maxFare = maxFareInput.value.trim();
+  let origin = lastTripQuery.origin;
+  let destination = lastTripQuery.destination;
+  let maxFare = lastTripQuery.maxFare;
 
-  if (maxFare !== "" && !/^[1-9]\d*$/.test(maxFare)) {
-    setMessage("Max fare must be a positive whole number");
-    return;
+  if (updateMessage) {
+    origin = originInput.value.trim();
+    destination = destinationInput.value.trim();
+    maxFare = maxFareInput.value.trim();
+    if (maxFare !== "" && !/^[1-9]\d*$/.test(maxFare)) {
+      setMessage("Max fare must be a positive whole number");
+      return;
+    }
+    lastTripQuery = { origin: origin, destination: destination, maxFare: maxFare };
   }
 
   fetchTrips(origin, destination, maxFare)
     .then(data => {
       if (!Array.isArray(data.items)) {
-        if (typeof data.detail === "string") {
+        if (updateMessage && typeof data.detail === "string") {
           setMessage(data.detail);
         }
         return;
@@ -182,7 +199,9 @@ studioTabsEl.addEventListener("click", event => {
   }
   const tabName = event.target.getAttribute("data-tab");
   for (const btn of studioTabsEl.querySelectorAll(".studio-tab")) {
-    btn.classList.toggle("is-active", btn === event.target);
+    const isCurrent = btn === event.target;
+    btn.classList.toggle("is-active", isCurrent);
+    btn.setAttribute("aria-selected", isCurrent ? "true" : "false");
   }
   const panes = {
     ai: document.getElementById("pane-ai"),
@@ -248,24 +267,30 @@ function renderAiSearch(data) {
   }
 }
 
-function runAiSearch(queryText) {
+function runAiSearch(queryText, showMessage = true) {
+  if (!queryText) {
+    return;
+  }
   aiSearchTrips(queryText)
     .then(res => {
       if (res.status === 200) {
+        lastAiQuery = queryText;
         renderAiSearch(res.data);
-        setStudioMessage(`AI search matched ${res.data.total} trip(s)`);
+        if (showMessage) {
+          setStudioMessage(`AI search matched ${res.data.total} trip(s)`);
+        }
       } else {
         aiParsedEl.replaceChildren();
         aiResultsEl.replaceChildren();
-        setStudioMessage(typeof res.data.detail === "string" ? res.data.detail : "AI search failed");
+        showStudioDetail(res.data, "AI search failed");
       }
     })
-    .catch(() => setStudioMessage("Could not reach SeatDesk"));
+    .catch(reportStudioOffline);
 }
 
 aiForm.addEventListener("submit", event => {
   event.preventDefault();
-  runAiSearch(aiQueryInput.value.trim());
+  runAiSearch(aiQueryInput.value.trim(), true);
 });
 
 aiChipsEl.addEventListener("click", event => {
@@ -274,7 +299,7 @@ aiChipsEl.addEventListener("click", event => {
   }
   const promptText = event.target.getAttribute("data-ai-prompt");
   aiQueryInput.value = promptText;
-  runAiSearch(promptText);
+  runAiSearch(promptText, true);
 });
 
 aiResultsEl.addEventListener("click", event => {
@@ -291,13 +316,15 @@ aiResultsEl.addEventListener("click", event => {
     .then(res => {
       if (res.status === 201) {
         setStudioMessage(`Seat held: booking #${res.data.id}, INR ${res.data.amount_inr}`);
-        runAiSearch(aiQueryInput.value.trim());
+        if (lastAiQuery) {
+          runAiSearch(lastAiQuery, false);
+        }
         loadTrips(false);
-      } else if (typeof res.data.detail === "string") {
-        setStudioMessage(res.data.detail);
+      } else {
+        showStudioDetail(res.data, "Could not create booking");
       }
     })
-    .catch(() => setStudioMessage("Could not reach SeatDesk"));
+    .catch(reportStudioOffline);
 });
 
 function runAdvisorySearch(queryText) {
@@ -305,7 +332,7 @@ function runAdvisorySearch(queryText) {
     .then(res => {
       advisoryResultsEl.replaceChildren();
       if (res.status !== 200 || !Array.isArray(res.data)) {
-        setStudioMessage(typeof res.data.detail === "string" ? res.data.detail : "Policy search error");
+        showStudioDetail(res.data, "Policy search error");
         return;
       }
       for (const hit of res.data) {
@@ -330,7 +357,7 @@ function runAdvisorySearch(queryText) {
       }
       setStudioMessage(`Top ${res.data.length} advisories ranked`);
     })
-    .catch(() => setStudioMessage("Could not reach SeatDesk"));
+    .catch(reportStudioOffline);
 }
 
 advisoryForm.addEventListener("submit", event => {
@@ -353,7 +380,7 @@ timetableForm.addEventListener("submit", event => {
     .then(res => {
       timetableResultsEl.replaceChildren();
       if (res.status !== 200 || !Array.isArray(res.data)) {
-        setStudioMessage("Could not load timetable");
+        showStudioDetail(res.data, "Could not load timetable");
         return;
       }
       if (res.data.length === 0) {
@@ -380,7 +407,7 @@ timetableForm.addEventListener("submit", event => {
       }
       setStudioMessage(`Merged ${res.data.length} departure(s) via merge_sorted`);
     })
-    .catch(() => setStudioMessage("Could not reach SeatDesk"));
+    .catch(reportStudioOffline);
 });
 
 function buildBookingRows(bookings, role) {
@@ -458,7 +485,7 @@ function loadRoleDesk(showMessage = true) {
     .then(meRes => {
       if (meRes.status !== 200) {
         if (showMessage) {
-          setStudioMessage(typeof meRes.data.detail === "string" ? meRes.data.detail : "Session invalid");
+          showStudioDetail(meRes.data, "Session invalid");
         }
         return;
       }
@@ -469,12 +496,16 @@ function loadRoleDesk(showMessage = true) {
       deskContentEl.appendChild(banner);
 
       if (user.role === "passenger") {
-        fetchBookings(token).then(bRes => {
-          if (bRes.status === 200) {
-            deskContentEl.appendChild(buildBookingRows(bRes.data.items, user.role));
+        return fetchBookings(token).then(bRes => {
+          if (bRes.status !== 200 || !Array.isArray(bRes.data.items)) {
             if (showMessage) {
-              setStudioMessage(`Loaded ${bRes.data.total} booking(s) for ${user.email}`);
+              showStudioDetail(bRes.data, "Could not load bookings");
             }
+            return;
+          }
+          deskContentEl.appendChild(buildBookingRows(bRes.data.items, user.role));
+          if (showMessage) {
+            setStudioMessage(`Loaded ${bRes.data.total} booking(s) for ${user.email}`);
           }
         });
       } else if (user.role === "conductor") {
@@ -508,7 +539,7 @@ function loadRoleDesk(showMessage = true) {
           setStudioMessage(`Conductor boarding desk ready for ${user.full_name}`);
         }
       } else if (user.role === "operator") {
-        Promise.all([fetchOperatorSummary(token), fetchBookings(token)]).then(([sumRes, bRes]) => {
+        return Promise.all([fetchOperatorSummary(token), fetchBookings(token)]).then(([sumRes, bRes]) => {
           if (sumRes.status === 200) {
             const s = sumRes.data;
             const kpis = document.createElement("div");
@@ -544,19 +575,37 @@ function loadRoleDesk(showMessage = true) {
             actions.appendChild(relBtn);
             deskContentEl.appendChild(actions);
           }
-          if (bRes.status === 200) {
+          if (bRes.status === 200 && Array.isArray(bRes.data.items)) {
             deskContentEl.appendChild(buildBookingRows(bRes.data.items, user.role));
           }
           if (showMessage) {
-            setStudioMessage("Operator summary loaded");
+            if (sumRes.status !== 200) {
+              showStudioDetail(sumRes.data, "Could not load operator summary");
+            } else if (bRes.status !== 200) {
+              showStudioDetail(bRes.data, "Could not load bookings");
+            } else {
+              setStudioMessage("Operator summary loaded");
+            }
           }
         });
       }
     })
-    .catch(() => setStudioMessage("Could not reach SeatDesk"));
+    .catch(reportStudioOffline);
 }
 
 loadDeskBtn.addEventListener("click", () => loadRoleDesk(true));
+
+function runDeskRequest(promise, onSuccess, fallback) {
+  promise
+    .then(res => {
+      if (res.status === 200) {
+        onSuccess(res);
+      } else {
+        showStudioDetail(res.data, fallback);
+      }
+    })
+    .catch(reportStudioOffline);
+}
 
 deskContentEl.addEventListener("click", event => {
   if (!(event.target instanceof Element)) {
@@ -576,13 +625,11 @@ deskContentEl.addEventListener("click", event => {
       setStudioMessage("Enter a valid booking ID");
       return;
     }
-    updateBookingStatusRequest(bid, conductorStatus, token).then(res => {
-      if (res.status === 200) {
-        setStudioMessage(`Booking #${res.data.id} moved to ${res.data.status}`);
-      } else if (typeof res.data.detail === "string") {
-        setStudioMessage(res.data.detail);
-      }
-    });
+    runDeskRequest(
+      updateBookingStatusRequest(bid, conductorStatus, token),
+      res => setStudioMessage(`Booking #${res.data.id} moved to ${res.data.status}`),
+      "Could not update booking"
+    );
     return;
   }
 
@@ -591,45 +638,47 @@ deskContentEl.addEventListener("click", event => {
     return;
   }
   if (action === "release-stale") {
-    releaseStaleHoldsRequest(token).then(res => {
-      if (res.status === 200) {
+    runDeskRequest(
+      releaseStaleHoldsRequest(token),
+      res => {
         setStudioMessage(`Released ${res.data.released} stale hold(s): [${res.data.booking_ids.join(", ")}]`);
         loadRoleDesk(false);
         loadTrips(false);
-      }
-    });
+      },
+      "Could not release stale holds"
+    );
     return;
   }
 
   const bookingId = Number(event.target.getAttribute("data-booking-id"));
   if (action === "pay") {
-    payBookingRequest(bookingId, token).then(res => {
-      if (res.status === 200) {
+    runDeskRequest(
+      payBookingRequest(bookingId, token),
+      res => {
         setStudioMessage(`Booking #${res.data.id} confirmed (INR ${res.data.amount_inr} charged)`);
         loadRoleDesk(false);
-      } else if (typeof res.data.detail === "string") {
-        setStudioMessage(res.data.detail);
-      }
-    });
+      },
+      "Could not pay hold"
+    );
   } else if (action === "cancel") {
-    cancelBookingRequest(bookingId, token).then(res => {
-      if (res.status === 200) {
+    runDeskRequest(
+      cancelBookingRequest(bookingId, token),
+      res => {
         setStudioMessage(`Booking #${res.data.id} cancelled · refund INR ${res.data.refund_inr}`);
         loadRoleDesk(false);
         loadTrips(false);
-      } else if (typeof res.data.detail === "string") {
-        setStudioMessage(res.data.detail);
-      }
-    });
+      },
+      "Could not cancel booking"
+    );
   } else if (action === "boarded" || action === "completed") {
-    updateBookingStatusRequest(bookingId, action, token).then(res => {
-      if (res.status === 200) {
+    runDeskRequest(
+      updateBookingStatusRequest(bookingId, action, token),
+      res => {
         setStudioMessage(`Booking #${res.data.id} updated to ${res.data.status}`);
         loadRoleDesk(false);
-      } else if (typeof res.data.detail === "string") {
-        setStudioMessage(res.data.detail);
-      }
-    });
+      },
+      "Could not update booking"
+    );
   }
 });
 

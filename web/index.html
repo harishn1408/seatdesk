@@ -88,14 +88,14 @@
           <h2>AI Concierge, Timetable &amp; Role Desk</h2>
         </div>
         <div class="studio-tabs" role="tablist">
-          <button type="button" class="studio-tab is-active" data-tab="ai">AI &amp; Policy Copilot</button>
-          <button type="button" class="studio-tab" data-tab="timetable">Corridor Timetable</button>
-          <button type="button" class="studio-tab" data-tab="role">Role Desk</button>
+          <button id="tab-ai" type="button" role="tab" aria-selected="true" aria-controls="pane-ai" class="studio-tab is-active" data-tab="ai">AI &amp; Policy Copilot</button>
+          <button id="tab-timetable" type="button" role="tab" aria-selected="false" aria-controls="pane-timetable" class="studio-tab" data-tab="timetable">Corridor Timetable</button>
+          <button id="tab-role" type="button" role="tab" aria-selected="false" aria-controls="pane-role" class="studio-tab" data-tab="role">Role Desk</button>
         </div>
       </div>
       <p id="studio-message" class="studio-message" role="status"></p>
 
-      <div id="pane-ai" class="studio-pane">
+      <div id="pane-ai" class="studio-pane" role="tabpanel" aria-labelledby="tab-ai">
         <div class="studio-split">
           <article class="studio-card">
             <h3>Free-Text Trip Search</h3>
@@ -130,7 +130,7 @@
         </div>
       </div>
 
-      <div id="pane-timetable" class="studio-pane is-hidden">
+      <div id="pane-timetable" class="studio-pane is-hidden" role="tabpanel" aria-labelledby="tab-timetable">
         <article class="studio-card">
           <h3>Merged Two-Operator Timetable</h3>
           <p class="studio-hint">Interleaves departures in <code>O(n + m)</code> time using <code>algo.merge_sorted</code> (<code>GET /routes/{id}/timetable</code>).</p>
@@ -172,7 +172,7 @@
         </article>
       </div>
 
-      <div id="pane-role" class="studio-pane is-hidden">
+      <div id="pane-role" class="studio-pane is-hidden" role="tabpanel" aria-labelledby="tab-role">
         <article class="studio-card">
           <div class="role-header">
             <div>
